@@ -10,15 +10,13 @@ import java.util.Properties;
  * Created by hanxiaofei on 2017/4/7.
  */
 public class HazelcastSink<T> extends RichSinkFunction<T> {
-    private IMap<String,Object> iMap;
     private final CommonIMCacheSinkFunction<T> commonIMCacheSinkFunction;
     @Override
     public void invoke(T value) throws Exception {
-        commonIMCacheSinkFunction.process(value,iMap);
+        commonIMCacheSinkFunction.process(value);
     }
 
-    public HazelcastSink(IMap<String,Object> iMap, CommonIMCacheSinkFunction<T> commonIMCacheSinkFunction) {
-        this.iMap = iMap;
+    public HazelcastSink(CommonIMCacheSinkFunction<T> commonIMCacheSinkFunction) {
         this.commonIMCacheSinkFunction = commonIMCacheSinkFunction;
     }
 }

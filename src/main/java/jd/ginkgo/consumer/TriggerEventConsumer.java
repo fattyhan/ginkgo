@@ -3,7 +3,7 @@ package jd.ginkgo.consumer;
 import jd.ginkgo.data.BaseData;
 import jd.ginkgo.data.Trigger;
 import jd.ginkgo.data.parse.TriggerParse;
-import jd.ginkgo.data.selector.BaseSelector;
+import jd.ginkgo.data.selector.TriggerSelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
@@ -31,7 +31,7 @@ public class TriggerEventConsumer implements Consumer{
                     }
                 })
                 .flatMap(new TriggerParse())
-                .keyBy(String.valueOf(new BaseSelector()));
+                .keyBy(new TriggerSelector());
 
         return triggerDataStream;
     }

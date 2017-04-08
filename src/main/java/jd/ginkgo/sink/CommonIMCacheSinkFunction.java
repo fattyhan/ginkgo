@@ -9,5 +9,5 @@ import java.io.Serializable;
  * Created by hanxiaofei on 2017/4/7.
  */
 public interface CommonIMCacheSinkFunction<T> extends Serializable, Function {
-    void process(T element,IMap<String,Object> iMap);
+    void process(T element);
 }

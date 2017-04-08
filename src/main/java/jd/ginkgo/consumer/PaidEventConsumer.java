@@ -3,7 +3,7 @@ package jd.ginkgo.consumer;
 import jd.ginkgo.data.BaseData;
 import jd.ginkgo.data.Paid;
 import jd.ginkgo.data.parse.PaidParse;
-import jd.ginkgo.data.selector.BaseSelector;
+import jd.ginkgo.data.selector.PaidSelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
@@ -27,7 +27,7 @@ public class PaidEventConsumer implements Consumer{
                     }
                 })
                 .flatMap(new PaidParse())
-                .keyBy(String.valueOf(new BaseSelector()));
+                .keyBy(new PaidSelector());
         return paidDataStream;
     }
 }

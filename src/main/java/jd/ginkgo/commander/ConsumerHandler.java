@@ -1,6 +1,5 @@
 package jd.ginkgo.commander;
 
-import com.hazelcast.core.IMap;
 import jd.ginkgo.constant.ConfigHelper;
 import jd.ginkgo.consumer.ConsumerLeader;
 import jd.ginkgo.consumer.HitEventConsumer;
@@ -16,12 +15,8 @@ import jd.ginkgo.data.entity.TriggerEntity;
 import jd.ginkgo.data.selector.HitSelector;
 import jd.ginkgo.data.selector.PaidSelector;
 import jd.ginkgo.data.selector.TriggerSelector;
-import jd.ginkgo.db.HazelcastMapHelper;
-import jd.ginkgo.sink.CommonIMCacheSinkFunction;
-import jd.ginkgo.sink.HazelcastSink;
-import jd.ginkgo.sink.PromotionDBSinkFunction;
+import jd.ginkgo.sink.*;
 import org.apache.flink.cep.CEP;
-import org.apache.flink.cep.PatternStream;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -39,7 +34,7 @@ import java.util.Properties;
 public class ConsumerHandler {
     final static StreamExecutionEnvironment env = StreamExecutionEnvironment
             .getExecutionEnvironment();
-    public static void main() {
+    public static void main() throws Exception {
         //STEP1 设置运行环境
         env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
         Properties properties = new Properties();
@@ -47,6 +42,7 @@ public class ConsumerHandler {
         properties.setProperty("zookeeper.connect", ConfigHelper.ZOOKEEPER_CONNECT);
 
         //STEP2 启动消费数据源
+        //-----如果是简单的处理我们可以直接在这定义为keyedStream
         DataStream<Trigger> triggerDataStream = (DataStream<Trigger>) new ConsumerLeader(new TriggerEventConsumer(),env,properties,ConfigHelper.PRO_TRIGGER_TOPIC).move();
         DataStream<Paid> paidDataStream = (DataStream<Paid>) new ConsumerLeader(new PaidEventConsumer(),env,properties,ConfigHelper.PRO_PAID_TOPIC).move();
         DataStream<Hit> hitDataStream = (DataStream<Hit>) new ConsumerLeader(new HitEventConsumer(),env,properties,ConfigHelper.PRO_HIT_TOPIC).move();
@@ -65,16 +61,18 @@ public class ConsumerHandler {
                 .where(evt->evt.getOrderId()!=null);
 
         //STEP3 过滤流数据
+        //-----如果是简单的过滤规则的话我们可以不用匹配模式直接使用keyby就可以
+        //-----keyby可以使用在addSource阶段，并且只有datastream可keyedStream才能使用widow
         KeyedStream<Trigger,String> keyedTriggerStream = CEP.pattern(
-                triggerDataStream.keyBy("PromotionId"),triggerPattern)
+                triggerDataStream.keyBy(new TriggerSelector()),triggerPattern)
                 .getInputStream()
                 .keyBy(new TriggerSelector());
         KeyedStream<Hit,String> keyedHitStream = CEP.pattern(
-                hitDataStream.keyBy("PromotionId"),hitPattern)
+                hitDataStream.keyBy(new HitSelector()),hitPattern)
                 .getInputStream()
                 .keyBy(new HitSelector());
         KeyedStream<Paid,String> keyedPaidStream = CEP.pattern(
-                paidDataStream.keyBy("PromotionId"),paidPattern)
+                paidDataStream.keyBy(new PaidSelector()),paidPattern)
                 .getInputStream()
                 .keyBy(new PaidSelector());
 
@@ -92,14 +90,11 @@ public class ConsumerHandler {
 
         //STEP5 入库
         //--暂时不考虑数据库放到分布式缓存中
-        IMap<String,Object> iMap = HazelcastMapHelper.getIMap(ConfigHelper.PRO_TRIGGER_TOPIC);
-        IMap<String,Object> iMapHit = HazelcastMapHelper.getIMap(ConfigHelper.PRO_HIT_TOPIC);
-        IMap<String,Object> iMapPaid = HazelcastMapHelper.getIMap(ConfigHelper.PRO_PAID_TOPIC);
+        triggerStreamper2Second.addSink(new HazelcastSink(new TriggerDBSinkFunction()));
+        hitStreamper2Second.addSink(new HazelcastSink(new HitDBSinkFunction()));
+        paidStreamper2Second.addSink(new HazelcastSink(new PaidDBSinkFunction()));
 
-        triggerStreamper2Second.addSink(new HazelcastSink(iMap,new PromotionDBSinkFunction()));
-        hitStreamper2Second.addSink(new HazelcastSink(iMapHit,new PromotionDBSinkFunction()));
-        paidStreamper2Second.addSink(new HazelcastSink(iMapPaid,new PromotionDBSinkFunction()));
-
-
+        //保持工作状态
+        env.execute();
     }
 }

@@ -3,7 +3,7 @@ package jd.ginkgo.consumer;
 import jd.ginkgo.data.BaseData;
 import jd.ginkgo.data.Hit;
 import jd.ginkgo.data.parse.HitParse;
-import jd.ginkgo.data.selector.BaseSelector;
+import jd.ginkgo.data.selector.HitSelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
@@ -27,7 +27,7 @@ public class HitEventConsumer implements Consumer{
                     }
                 })
                 .flatMap(new HitParse())
-                .keyBy(String.valueOf(new BaseSelector()));
+                .keyBy(new HitSelector());
         return hitDataStream;
     }
 }

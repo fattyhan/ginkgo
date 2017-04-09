@@ -16,6 +16,9 @@ public class Trigger extends  BaseData{
         this.userPin = userPin;
     }
 
+    public Trigger() {
+    }
+
     /**
      * 将输入源抓取的数据解析为对象
      * @param json

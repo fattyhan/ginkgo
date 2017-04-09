@@ -18,24 +18,26 @@ public final class TriggerWindowMean implements WindowFunction<Trigger, TriggerE
     public void apply(String s, TimeWindow window, Iterable<Trigger> input, Collector<TriggerEntity> out) throws Exception {
         //STEP1 定义实体
         //-----维护的只是统计项，先从存储器拿，没有的话再新增 主键是活动ID
-        //主题与map同名
-        boolean exit = HazelcastMapHelper.createIfNo(ConfigHelper.PRO_TRIGGER_TOPIC);
-
+        //主题与map同名 true 不存在 false存在
+        boolean beExit = HazelcastMapHelper.createIfNo(ConfigHelper.PRO_TRIGGER_TOPIC);
+        TriggerEntity triggerEntity = new TriggerEntity();
         int sum = 0;
-        input.forEach(trigger->{
-            TriggerEntity triggerEntity;
-            if(exit)
-                triggerEntity = (TriggerEntity)HazelcastMapHelper.takeObj(ConfigHelper.PRO_TRIGGER_TOPIC,trigger.getPromotionId());
-            else
-                triggerEntity = new TriggerEntity();
+//        input.forEach(trigger->{
+        for(Trigger trigger:input) {
+            if (!beExit)
+                triggerEntity = (TriggerEntity) HazelcastMapHelper.takeObj(ConfigHelper.PRO_TRIGGER_TOPIC, trigger.getPromotionId());
             //设置属性 TODO 注意注意这个方法是实时调用的但是会保存约定的时长，这里临时数据需要处理
             triggerEntity.setPromotionID(trigger.getPromotionId());
             triggerEntity.setOrderID(trigger.getOrderID());
             triggerEntity.setUserPin(trigger.getUserPin());
-            triggerEntity.setSum(triggerEntity.getSum()+1);
-            triggerEntity.setCurrentQuantity(sum+1);
-            out.collect(triggerEntity);
-        });
+            sum +=1;
+        }
+        //-----设置临时数据,每次打开窗口将上次记录的临时数据归零 当前活动总数累加
+        triggerEntity.setSum(triggerEntity.getSum() + sum);
+        triggerEntity.setCurrentQuantity(sum);
+//        });
+        //----此方法会调用对应插槽的process方法
+        out.collect(triggerEntity);
 
     }
 }

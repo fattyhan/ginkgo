@@ -25,6 +25,9 @@ public class Hit extends BaseData{
         this.mark = mark;
     }
 
+    public Hit() {
+    }
+
     public static Hit parseHit(String json) throws IOException {
         return JSON.parseObject(json,Hit.class);
     }

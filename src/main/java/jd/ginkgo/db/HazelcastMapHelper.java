@@ -1,6 +1,5 @@
 package jd.ginkgo.db;
 
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.util.MapUtil;
@@ -10,9 +9,18 @@ import jd.ginkgo.constant.ConfigHelper;
  * Created by hanxiaofei on 2017/4/7.
  */
 public class HazelcastMapHelper {
-    private static final HazelcastInstance hz = Hazelcast.newHazelcastInstance();
+    private static  HazelcastInstance hz;
+
+    public HazelcastMapHelper(HazelcastInstance hz) {
+        this.hz = hz;
+    }
+
     public static boolean createIfNo(String name){
-        return MapUtil.isNullOrEmpty(hz.getMap(name));
+        boolean ie = MapUtil.isNullOrEmpty(hz.getMap(name));
+         if(ie){
+             hz.getMap(name);
+         }
+        return ie;
     }
 
     public static Object takeObj(String name,String key){
@@ -23,16 +31,16 @@ public class HazelcastMapHelper {
         IMap<String,Object> iMap;
         switch (name) {
             case "trigger":
-                iMap = HazelcastMapHelper.getIMap(ConfigHelper.PRO_TRIGGER_TOPIC);
+                iMap = hz.getMap(ConfigHelper.PRO_TRIGGER_TOPIC);
                 break;
             case "hit":
-                iMap = HazelcastMapHelper.getIMap(ConfigHelper.PRO_HIT_TOPIC);
+                iMap = hz.getMap(ConfigHelper.PRO_HIT_TOPIC);
                 break;
             case "paid":
-                iMap = HazelcastMapHelper.getIMap(ConfigHelper.PRO_PAID_TOPIC);
+                iMap = hz.getMap(ConfigHelper.PRO_PAID_TOPIC);
                 break;
             default:
-                iMap = HazelcastMapHelper.getIMap("error");
+                iMap = hz.getMap("error");
         }
         return iMap;
     }

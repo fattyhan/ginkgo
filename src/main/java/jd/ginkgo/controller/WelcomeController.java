@@ -1,7 +1,8 @@
 package jd.ginkgo.controller;
 
+import jd.ginkgo.data.entity.TriggerEntity;
+import jd.ginkgo.db.HazelcastMapHelper;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.Date;
@@ -15,10 +16,12 @@ public class WelcomeController {
 
     private String message = "Hello World";
 
-    @RequestMapping("/ss")
+    @RequestMapping("/trigger")
     public String welcome(Map<String, Object> model) {
+        TriggerEntity triggerEntity = (TriggerEntity)HazelcastMapHelper.getIMap("trigger").get("1");
+        model.put("sum", triggerEntity.getSum());
+        model.put("concurrent", triggerEntity.getCurrentQuantity());
         model.put("time", new Date());
-        model.put("message", this.message);
         return "welcome";
     }
 

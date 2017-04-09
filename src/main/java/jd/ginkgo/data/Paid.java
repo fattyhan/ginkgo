@@ -22,6 +22,9 @@ public class Paid extends BaseData {
         this.productItem = productItem;
     }
 
+    public Paid() {
+    }
+
     public static Paid parsePaid(String json) throws IOException {
         return JSON.parseObject(json,Paid.class);
     }

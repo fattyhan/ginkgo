@@ -1,8 +1,10 @@
 package jd.ginkgo.sink;
 
-import com.hazelcast.core.IMap;
-import jd.ginkgo.data.BaseData;
+import jd.ginkgo.data.entity.TriggerEntity;
 import jd.ginkgo.db.HazelcastMapHelper;
+import org.apache.flink.hadoop.shaded.org.apache.http.impl.cookie.DateUtils;
+
+import java.util.Date;
 
 
 /**
@@ -13,7 +15,9 @@ public class TriggerDBSinkFunction implements CommonIMCacheSinkFunction<Object> 
     @Override
     public void process(Object element) {
         //直接覆盖 TODO需要取key
-        BaseData baseData = (BaseData) element;
-        HazelcastMapHelper.getIMap("trigger").put(baseData.getPromotionId(),element);
+        TriggerEntity baseData = (TriggerEntity) element;
+        String time = DateUtils.formatDate(new Date(),"yyyy-MM-dd HH:mm:ss");
+        System.out.println(time+"---> 总数："+baseData.getSum()+"--->临时数据是："+baseData.getCurrentQuantity());
+        HazelcastMapHelper.getIMap("trigger").put(baseData.getPromotionID(),element);
     }
 }

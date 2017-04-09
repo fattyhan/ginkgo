@@ -19,7 +19,7 @@ public class PaidEventConsumer implements Consumer{
     @Override
     public DataStream<? extends BaseData> move(StreamExecutionEnvironment env, Properties properties, String topic) {
         DataStream<Paid> paidDataStream = env
-                .addSource(new FlinkKafkaConsumer010<>("traffic", new SimpleStringSchema(), properties))
+                .addSource(new FlinkKafkaConsumer010<>(topic, new SimpleStringSchema(), properties))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<String>() {
                     @Override
                     public long extractAscendingTimestamp(String s) {

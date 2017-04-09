@@ -32,11 +32,13 @@ import java.util.Properties;
  * Created by hanxiaofei on 2017/4/7.
  */
 public class ConsumerHandler {
-    final static StreamExecutionEnvironment env = StreamExecutionEnvironment
-            .getExecutionEnvironment();
+    @SuppressWarnings("unchecked")
     public static void main() throws Exception {
+        final  StreamExecutionEnvironment env = StreamExecutionEnvironment
+                .getExecutionEnvironment();
         //STEP1 设置运行环境
-        env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+        //-----时间类型很重要！！！！！
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", ConfigHelper.BOOT_STRAP_SERVERS);
         properties.setProperty("zookeeper.connect", ConfigHelper.ZOOKEEPER_CONNECT);
@@ -77,15 +79,17 @@ public class ConsumerHandler {
                 .keyBy(new PaidSelector());
 
         //STEP4 计算统计数据
-        //----计算数据按照约定频率刷新存储器里的数据
+        //----计算数据按照约定频率刷新存储器里的数据,窗口是不会死掉的，关于翻滚窗口的使用详见官方文档
+        //----例如，如果您希望窗口按小时显示流，但窗口从每小时的第15分钟开始，您可以使用of(Time.hours(1),Time.minutes(15))，然后您将得到时间窗口从0：15：00,1：15：00,2：15开始：00等
+        //----我们每两秒报一次数时间对齐为00:00:02 01:00:02 ........
         DataStream<TriggerEntity> triggerStreamper2Second = keyedTriggerStream
-                .window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(ConfigHelper.INDEX_STATISTICS))))
+                .window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(ConfigHelper.INDEX_STATISTICS)),Time.seconds(Long.parseLong(ConfigHelper.INDEX_STATISTICS_OFFSET))))
                 .apply(new TriggerWindowMean());
         DataStream<HitEntity> hitStreamper2Second = keyedHitStream
-                .window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(ConfigHelper.INDEX_STATISTICS))))
+                .window(TumblingEventTimeWindows.of(Time.minutes(Long.parseLong(ConfigHelper.INDEX_HIT)),Time.minutes(Long.parseLong(ConfigHelper.INDEX_STATISTICS_HIT))))
                 .apply(new HitWindowMean());
         DataStream<PaidEntity> paidStreamper2Second = keyedPaidStream
-                .window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(ConfigHelper.INDEX_STATISTICS))))
+                .window(TumblingEventTimeWindows.of(Time.minutes(Long.parseLong(ConfigHelper.INDEX_PAID)),Time.minutes(Long.parseLong(ConfigHelper.INDEX_STATISTICS_PAID))))
                 .apply(new PaidWindowMean());
 
         //STEP5 入库
@@ -95,6 +99,6 @@ public class ConsumerHandler {
         paidStreamper2Second.addSink(new HazelcastSink(new PaidDBSinkFunction()));
 
         //保持工作状态
-        env.execute();
+        env.execute("PromotionMonitor");
     }
 }
